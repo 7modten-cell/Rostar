@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102b52">
+<title>Rostar | إدارة الشيفتات</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="bg-slate-100 text-slate-800">
+<div id="loginView" class="min-h-screen flex items-center justify-center p-4">
+  <div class="login-card w-full max-w-md bg-white rounded-3xl p-7 shadow-xl">
+    <div class="brand-mark mx-auto mb-4"><svg viewBox="0 0 64 64" aria-label="سماعة طبيب" role="img"><path d="M14 10v15c0 10 7 17 17 17s17-7 17-17V10" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/><path d="M8 10h12M42 10h12" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/><path d="M31 42v5c0 7 5 12 12 12h3" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/><circle cx="51" cy="59" r="5" fill="none" stroke="currentColor" stroke-width="4"/></svg></div>
+    <p class="text-center text-blue-900 font-extrabold tracking-widest text-xl">Rostar</p>
+    <h1 class="text-center text-slate-500 mt-2 mb-7">إدارة الشيفتات والروستر</h1>
+    <form id="loginForm" class="space-y-4">
+      <label class="block text-sm font-bold">كود الدخول</label>
+      <input id="loginCode" class="field text-center tracking-widest" placeholder="أدخل كود الدخول" autocomplete="off" required>
+      <button class="primary-btn w-full" type="submit">دخول <span>←</span></button>
+      <p id="loginError" class="text-sm text-red-600 text-center hidden"></p>
+    </form>
+    <p class="text-xs text-slate-400 text-center mt-6">نسخة تجريبية: كود الإدارة الافتراضي ADMIN123</p>
+  </div>
+</div>
+
+<div id="appView" class="hidden min-h-screen">
+  <header class="main-header">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+      <button id="brandHome" class="text-right">
+        <div class="flex items-center gap-3"><div class="brand-mini"><svg viewBox="0 0 64 64" aria-label="سماعة طبيب" role="img"><path d="M14 10v15c0 10 7 17 17 17s17-7 17-17V10" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/><path d="M8 10h12M42 10h12" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/><path d="M31 42v5c0 7 5 12 12 12h3" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/><circle cx="51" cy="59" r="5" fill="none" stroke="currentColor" stroke-width="4"/></svg></div><div><div class="font-extrabold tracking-wider text-lg">Rostar</div><div class="text-blue-200 text-xs">SHIFT MANAGEMENT SYSTEM</div></div></div>
+      </button>
+      <div class="flex items-center gap-2">
+        <span id="headerName" class="text-sm font-bold"></span>
+        <button id="logoutBtn" class="logout-btn">خروج</button>
+      </div>
+    </div>
+    <div class="sub-header"><div class="max-w-7xl mx-auto px-4 flex justify-between items-center gap-3"><span>إدارة الشيفتات</span><span id="shiftCounter" class="counter">0 شيفت</span></div></div>
+  </header>
+
+  <main class="max-w-7xl mx-auto p-3 md:p-6">
+    <section id="nurseView" class="hidden">
+      <div class="tabs mb-5" id="nurseTabs">
+        <button class="tab active" data-tab="roster"><span>▦</span> الروستر</button>
+        <button class="tab" data-tab="salary"><span>▣</span> الراتب</button>
+        <button class="tab" data-tab="stats"><span>▥</span> إحصاء</button>
+        <button class="tab" data-tab="settings"><span>⚙</span> إعدادات</button>
+      </div>
+      <section id="tab-roster" class="tab-panel">
+        <div class="panel p-4 md:p-6">
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <button id="prevMonth" class="month-arrow">›</button>
+            <div class="text-center"><h2 id="monthLabel" class="text-xl font-extrabold"></h2><p class="text-xs text-slate-400 mt-1">اضغط لاختيار شيفت، واضغط مطولًا للمسح</p></div>
+            <button id="nextMonth" class="month-arrow">‹</button>
+          </div>
+          <div id="calendar" class="calendar-grid"></div>
+          <div class="flex flex-wrap gap-2 mt-5" id="legend"></div>
+          <div class="flex flex-col sm:flex-row gap-3 mt-6">
+            <button id="submitRoster" class="primary-btn flex-1">إرسال الجدول لرئيسة التمريض</button>
+            <button id="viewMasterFromNurse" class="secondary-btn flex-1 hidden">عرض الجدول العام للقسم</button>
+          </div>
+          <p id="submitStatus" class="text-sm mt-3 text-emerald-700"></p>
+        </div>
+      </section>
+      <section id="tab-salary" class="tab-panel hidden">
+        <div class="panel p-5 md:p-7"><div class="flex justify-between items-center gap-3"><div><p class="text-slate-500 text-sm">إجمالي الراتب المتوقع</p><h2 id="salaryTotal" class="text-3xl font-extrabold text-blue-900 mt-2">0 ج.م</h2></div><div class="stat-icon">ج.م</div></div><div id="salaryDetails" class="mt-6 overflow-x-auto"></div><p class="text-xs text-slate-400 mt-4">الحساب تقديري حسب الشيفتات المسجلة والأسعار المحددة من الإدارة.</p></div>
+      </section>
+      <section id="tab-stats" class="tab-panel hidden">
+        <div class="panel p-5"><h2 class="section-title mb-4">إحصائيات الشهر</h2><div id="statsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3"></div></div>
+      </section>
+      <section id="tab-settings" class="tab-panel hidden">
+        <div class="panel p-5 max-w-2xl"><h2 class="section-title mb-5">بيانات الممرض</h2><div id="nurseProfile" class="space-y-3"></div><button id="settingsLogout" class="secondary-btn mt-6">تسجيل الخروج</button></div>
+      </section>
+    </section>
+
+    <section id="adminView" class="hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-5"><div><h1 class="text-2xl font-extrabold">لوحة رئيسة التمريض</h1><p class="text-slate-500 text-sm mt-1">إدارة الفريق والروستر الشهري</p></div><div class="flex gap-2 flex-wrap"><button id="seedBtn" class="secondary-btn">تعبئة بيانات تجريبية</button><button id="adminExport" class="secondary-btn">طباعة / PDF</button></div></div>
+      <div class="tabs mb-5" id="adminTabs"><button class="tab active" data-admin-tab="people">الممرضون والأسعار</button><button class="tab" data-admin-tab="master">الجدول المجمع</button><button class="tab" data-admin-tab="individual">تعديل روستر ممرض</button></div>
+      <section id="admin-people" class="admin-panel">
+        <div class="panel p-4 md:p-6">
+          <div class="flex justify-between items-center gap-3 mb-4"><h2 class="section-title">فريق التمريض</h2><button id="addNurseBtn" class="primary-btn">+ إضافة ممرض</button></div>
+          <div class="overflow-x-auto"><table class="data-table"><thead><tr><th>الاسم</th><th>كود الدخول</th><th>الصفة</th><th>أسعار الشيفتات (ج.م)</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="nursesTable"></tbody></table></div>
+        </div>
+      </section>
+      <section id="admin-master" class="admin-panel hidden">
+        <div class="panel p-3 md:p-5">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4"><div><h2 class="section-title">الجدول المجمع للقسم</h2><p class="text-xs text-slate-500 mt-1">الأزرق للسنيور، والأبيض لباقي الفريق</p></div><div class="flex gap-2 items-center"><button id="masterPrev" class="month-arrow">›</button><strong id="masterMonth"></strong><button id="masterNext" class="month-arrow">‹</button></div></div>
+          <div id="masterRoster" class="master-wrap"></div>
+          <div class="flex flex-wrap gap-2 mt-5"><button id="publishBtn" class="primary-btn">حفظ ونشر الجدول النهائي</button><button id="printMaster" class="secondary-btn">طباعة الجدول / PDF</button></div><p id="publishStatus" class="text-sm text-emerald-700 mt-3"></p>
+        </div>
+      </section>
+      <section id="admin-individual" class="admin-panel hidden">
+        <div class="panel p-4 md:p-6"><h2 class="section-title mb-4">تعديل روستر ممرض</h2><div class="grid md:grid-cols-[260px_1fr] gap-5"><div><label class="label">اختر الممرض</label><select id="individualNurse" class="field mt-2"></select><p class="text-xs text-slate-400 mt-2">اختيار الاسم يفتح تقويمه لتعديل الشيفتات مباشرة.</p></div><div><div id="individualCalendar" class="calendar-grid"></div><div class="text-xs text-slate-500 mt-3">اضغط على اليوم لتغيير الشيفت.</div></div></div></div>
+      </section>
+    </section>
+  </main>
+</div>
+
+<div id="shiftModal" class="modal hidden" aria-hidden="true"><div class="modal-backdrop" data-close="1"></div><div class="bottom-sheet"><div class="sheet-handle"></div><div class="flex justify-between items-center mb-2"><h3 id="modalTitle" class="font-extrabold text-lg">اختر الشيفت</h3><button id="closeModal" class="close-btn">×</button></div><p class="text-xs text-slate-500 mb-4">اختيار شيفت جديد يستبدل الاختيار الحالي لليوم.</p><div id="shiftChoices" class="shift-choices"></div><button id="clearShift" class="clear-btn mt-4">مسح الشيفت من هذا اليوم</button></div></div>
+
+<div id="nurseModal" class="modal hidden"><div class="modal-backdrop" data-close="1"></div><div class="dialog"><div class="flex justify-between items-center mb-4"><h3 id="nurseModalTitle" class="font-extrabold text-lg">إضافة ممرض</h3><button id="closeNurseModal" class="close-btn">×</button></div><form id="nurseForm" class="grid sm:grid-cols-2 gap-3"><input id="editUid" type="hidden"><div><label class="label">اسم الممرض</label><input id="nurseName" class="field mt-1" required></div><div><label class="label">كود الدخول</label><input id="nurseCode" class="field mt-1" required></div><div><label class="label">الصفة</label><select id="nurseRole" class="field mt-1"><option value="Staff">Staff</option><option value="Senior">Senior</option></select></div><div><label class="label">حالة الحساب</label><select id="nurseActive" class="field mt-1"><option value="true">نشط</option><option value="false">معطل</option></select></div>
+<div><label class="label">سعر M / D</label><input id="priceM" type="number" min="0" class="field mt-1" value="250"></div><div><label class="label">سعر E</label><input id="priceE" type="number" min="0" class="field mt-1" value="250"></div><div><label class="label">سعر N</label><input id="priceN" type="number" min="0" class="field mt-1" value="350"></div><div><label class="label">سعر L (12 ساعة)</label><input id="priceL" type="number" min="0" class="field mt-1" value="500"></div><div><label class="label">سعر LD (24 ساعة)</label><input id="priceLD" type="number" min="0" class="field mt-1" value="900"></div><div class="sm:col-span-2 flex gap-2 mt-2"><button class="primary-btn flex-1" type="submit">حفظ البيانات</button><button id="cancelNurse" type="button" class="secondary-btn">إلغاء</button></div></form></div></div>
+
+<div id="cellModal" class="modal hidden"><div class="modal-backdrop" data-close="1"></div><div class="dialog"><div class="flex justify-between items-center mb-4"><h3 id="cellModalTitle" class="font-extrabold">تعديل الخانة</h3><button id="closeCellModal" class="close-btn">×</button></div><label class="label">اختيار ممرض</label><select id="cellNurseSelect" class="field mt-2"></select><div class="flex gap-2 mt-4"><button id="cellAdd" class="primary-btn flex-1">إضافة / نقل للخانة</button><button id="cellRemove" class="secondary-btn flex-1">حذف الاسم من اليوم</button></div></div></div>
+
+<div id="toast" class="toast hidden"></div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

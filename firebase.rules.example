@@ -1,0 +1,14 @@
+// IMPORTANT: This is a starting point, not a complete production security model.
+// Do not rely on a hard-coded ADMIN123 client-side check for real deployments.
+// Use Firebase Authentication + custom claims / a trusted backend for admin authorization.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Public prototype rules are intentionally NOT provided.
+    // Replace this file with rules that validate authenticated user identity,
+    // nurse ownership, admin custom claims, and permitted field changes.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
