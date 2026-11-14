@@ -1,7 +1,7 @@
 // SMART NURSE - Firebase-ready single-page app
 // Replace firebaseConfig values with your Firebase project's Web App config.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "REPLACE_WITH_FIREBASE_API_KEY",
@@ -58,7 +58,13 @@ async function persistPublished(month){await saveCloud("publishedRosters",month,
 function getSchedule(nurseId,month=state.month){const k=key(nurseId,month);if(!state.schedules[k])state.schedules[k]={};return state.schedules[k];}
 function countShifts(nurseId,month=state.month){return Object.keys(getSchedule(nurseId,month)).filter(d=>getSchedule(nurseId,month)[d]).length;}
 function currentNurse(){return state.nurses.find(n=>n.uid===state.user?.uid);}
-function changeMonth(delta,which="nurse"){let m=which==="nurse"?state.month:state.masterMonth;let [y,mo]=monthParts(m);mo+=delta;if(mo<1){mo=12;y--}if(mo>12){mo=1;y++}m=`${y}-${String(mo).padStart(2,"0")}`;if(which==="nurse")state.month=m;else state.masterMonth=m;renderAll();}
+function changeMonth(delta,which="nurse"){
+ const isNurse=which==="nurse";let m=isNurse?state.month:state.masterMonth;let [y,mo]=monthParts(m);mo+=delta;
+ if(mo<1){mo=12;y--}if(mo>12){mo=1;y++}
+ m=`${y}-${String(mo).padStart(2,"0")}`;
+ if(isNurse){state.month=m;renderAll();}
+ else{state.masterMonth=m;renderMaster();renderIndividual();}
+}
 function login(code){
  if(code==="ADMIN123"){state.user={uid:"admin",name:"رئيسة التمريض",role:"Admin"};showApp();return true;}
  const n=state.nurses.find(x=>x.code===code&&x.active!==false);
@@ -100,14 +106,22 @@ function renderSalary(){
 function renderStats(){const s=getSchedule(state.user.uid),entries=Object.entries(SHIFT).map(([c,v])=>({c,label:v.label,count:Object.values(s).filter(x=>x===c).length,color:v.color}));$("statsGrid").innerHTML=entries.map(x=>`<div class="stat-card"><strong style="color:${x.color}">${x.count}</strong><span>${x.c} · ${x.label}</span></div>`).join("");}
 function renderProfile(){const n=currentNurse();$("nurseProfile").innerHTML=[["الاسم",n.name],["كود الدخول",n.code],["الصفة",n.role==="Senior"?"ممرض سنيور":"ممرض Staff"],["القسم",n.department||"ICU"],["الحالة",n.active===false?"معطل":"نشط"]].map(([a,b])=>`<div class="flex justify-between gap-3 border-b border-slate-100 py-3"><span class="text-slate-500">${a}</span><b>${escapeHTML(b)}</b></div>`).join("");}
 function renderNurses(){
- $("nursesTable").innerHTML=state.nurses.map(n=>`<tr><td><b>${escapeHTML(n.name)}</b></td><td dir="ltr">${escapeHTML(n.code)}</td><td><span class="role-pill ${n.role==="Senior"?"":"staff"}">${n.role==="Senior"?"Senior":"Staff"}</span></td><td class="text-xs">M/D: ${n.prices?.M??0} · E: ${n.prices?.E??0} · N: ${n.prices?.N??0}<br>L: ${n.prices?.L??0} · LD: ${n.prices?.LD??0}</td><td>${n.active===false?"<span class='text-red-600'>معطل</span>":"<span class='text-emerald-700'>نشط</span>"}</td><td><button class="mini-btn" data-edit="${n.uid}">تعديل</button><button class="mini-btn" data-toggle="${n.uid}">${n.active===false?"تفعيل":"تعطيل"}</button><button class="mini-btn danger" data-delete="${n.uid}">حذف</button></td></tr>`).join("")||'<tr><td colspan="6" class="text-center text-slate-400">لا يوجد ممرضون. اضغط تعبئة بيانات تجريبية للبدء.</td></tr>';
+ $("nursesTable").innerHTML=state.nurses.map(n=>`<tr><td><b>${escapeHTML(n.name)}</b></td><td dir="ltr">${escapeHTML(n.code)}</td><td><span class="role-pill ${n.role==="Senior"?"":"staff"}">${n.role==="Senior"?"Senior":"Staff"}</span></td><td class="text-xs">M/D: ${n.prices?.M??"—"} · E: ${n.prices?.E??"—"} · N: ${n.prices?.N??"—"}<br>L: ${n.prices?.L??"—"} · LD: ${n.prices?.LD??"—"}</td><td>${n.active===false?"<span class='text-red-600'>معطل</span>":"<span class='text-emerald-700'>نشط</span>"}</td><td><button class="mini-btn" data-edit="${n.uid}">تعديل</button><button class="mini-btn" data-toggle="${n.uid}">${n.active===false?"تفعيل":"تعطيل"}</button><button class="mini-btn danger" data-delete="${n.uid}">حذف</button></td></tr>`).join("");
  $("nursesTable").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editNurse(b.dataset.edit));
  $("nursesTable").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=async()=>{const n=state.nurses.find(n=>n.uid===b.dataset.toggle);n.active=n.active===false;saveLocal();await persistNurse(n).catch(console.error);renderNurses();fillIndividualSelect();showToast(n.active?"تم تفعيل الحساب":"تم تعطيل الحساب");});
  $("nursesTable").querySelectorAll("[data-delete]").forEach(b=>b.onclick=async()=>{const n=state.nurses.find(n=>n.uid===b.dataset.delete);if(!confirm(`حذف ${n.name}؟ سيتم حذف ملفه من قائمة الفريق فقط.`))return;state.nurses=state.nurses.filter(x=>x.uid!==n.uid);saveLocal();if(db)await deleteDoc(doc(db,"nurses",n.uid)).catch(console.error);renderNurses();fillIndividualSelect();});
 }
-function openNurseForm(n=null){$("nurseForm").reset();$("editUid").value=n?.uid||"";$("nurseModalTitle").textContent=n?"تعديل بيانات الممرض":"إضافة ممرض";$("nurseName").value=n?.name||"";$("nurseCode").value=n?.code||"";$("nurseRole").value=n?.role||"Staff";$("nurseActive").value=String(n?.active!==false);$("priceM").value=n?.prices?.M??250;$("priceE").value=n?.prices?.E??250;$("priceN").value=n?.prices?.N??350;$("priceL").value=n?.prices?.L??500;$("priceLD").value=n?.prices?.LD??900;openModal("nurseModal");}
+function openNurseForm(n=null){$("nurseForm").reset();$("editUid").value=n?.uid||"";$("nurseModalTitle").textContent=n?"تعديل بيانات الممرض":"إضافة ممرض";$("nurseName").value=n?.name||"";$("nurseCode").value=n?.code||"";$("nurseRole").value=n?.role||"Staff";$("nurseActive").value=String(n?.active!==false);$("priceM").value=n?.prices?.M??"";$("priceE").value=n?.prices?.E??"";$("priceN").value=n?.prices?.N??"";$("priceL").value=n?.prices?.L??"";$("priceLD").value=n?.prices?.LD??"";openModal("nurseModal");}
 function editNurse(id){openNurseForm(state.nurses.find(n=>n.uid===id));}
-async function handleNurseSave(e){e.preventDefault();const oldId=$("editUid").value;const code=$("nurseCode").value.trim();if(state.nurses.some(n=>n.code===code&&n.uid!==oldId)){showToast("كود الدخول مستخدم بالفعل");return;}const n={uid:oldId||uid(),name:$("nurseName").value.trim(),code,role:$("nurseRole").value,active:$("nurseActive").value==="true",department:"ICU",prices:{M:+$("priceM").value||0,E:+$("priceE").value||0,N:+$("priceN").value||0,L:+$("priceL").value||0,LD:+$("priceLD").value||0},updatedAt:Date.now()};if(oldId)state.nurses=state.nurses.map(x=>x.uid===oldId?n:x);else state.nurses.push(n);saveLocal();await persistNurse(n).catch(e=>{console.error(e);showToast("حُفظ محليًا، راجع اتصال Firebase");});closeModal("nurseModal");renderNurses();fillIndividualSelect();showToast("تم حفظ بيانات الممرض");}
+async function handleNurseSave(e){
+ e.preventDefault();const oldId=$("editUid").value;const code=$("nurseCode").value.trim();
+ if(state.nurses.some(n=>n.code===code&&n.uid!==oldId)){showToast("كود الدخول مستخدم بالفعل");return;}
+ const readPrice=id=>$(id).value===""?null:Number($(id).value);
+ const n={uid:oldId||uid(),name:$("nurseName").value.trim(),code,role:$("nurseRole").value,active:$("nurseActive").value==="true",department:"ICU",prices:{M:readPrice("priceM"),E:readPrice("priceE"),N:readPrice("priceN"),L:readPrice("priceL"),LD:readPrice("priceLD")},updatedAt:Date.now()};
+ if(oldId)state.nurses=state.nurses.map(x=>x.uid===oldId?n:x);else state.nurses.push(n);
+ saveLocal();await persistNurse(n).catch(e=>{console.error(e);showToast("حُفظ محليًا، راجع اتصال Firebase");});
+ closeModal("nurseModal");renderNurses();fillIndividualSelect();showToast("تم حفظ بيانات الممرض");
+}
 function fillIndividualSelect(){const sel=$("individualNurse");if(!sel)return;const previous=sel.value;sel.innerHTML=state.nurses.filter(n=>n.active!==false).map(n=>`<option value="${n.uid}">${escapeHTML(n.name)} (${n.role})</option>`).join("");if(state.nurses.some(n=>n.uid===previous))sel.value=previous;renderIndividual();}
 function renderIndividual(){const id=$("individualNurse").value;if(!id)return;renderCalendar("individualCalendar",id,state.masterMonth,true);}
 function buildMaster(month){
@@ -137,15 +151,6 @@ function alterCell(remove=false){
  else {const desired=groupCodes[group].includes(current)?current:({MORNING:"M",AFTERNOON:"E",NIGHT:"N"})[group];s[d]=desired;}
  saveLocal();if(db)persistSchedule(id,c.month).catch(console.error);closeModal("cellModal");renderMaster();showToast(remove?"تم حذف الشيفت":"تم تحديث شيفت الممرض");
 }
-async function seedData(){
- if(!confirm("إضافة مجموعة ممرضين وشيفتات تجريبية؟ يمكن تعديلها أو حذفها لاحقًا."))return;
- const names=[["ياسمين","Senior"],["شروق","Senior"],["دعاء","Staff"],["محمد خالد","Staff"],["شهد حسن","Staff"],["مريم حسن","Staff"],["نور","Staff"],["بسمة","Staff"],["سارة رشدي","Staff"],["مصطفى","Staff"],["أميرة","Staff"],["شيماء سعد","Staff"]];
- for(let i=0;i<names.length;i++){const [name,role]=names[i];let n=state.nurses.find(x=>x.name===name);if(!n)n={uid:uid(),name,code:`N${String(i+1).padStart(3,"0")}`,role,active:true,department:"ICU",prices:{M:250,E:250,N:350,L:500,LD:900}};state.nurses=state.nurses.filter(x=>x.uid!==n.uid);state.nurses.push(n);}
- const codes=["M","E","N","L","LD","D","M","E","N","X","AL","TR"];
- for(const n of state.nurses){const s=getSchedule(n.uid,state.masterMonth);for(let d=1;d<=daysIn(state.masterMonth);d++){if(!s[d]&&((d+state.nurses.indexOf(n))%4===0))s[d]=codes[(d+state.nurses.indexOf(n))%codes.length];}}
- saveLocal();if(db){try{const batch=writeBatch(db);state.nurses.forEach(n=>batch.set(doc(db,"nurses",n.uid),n,{merge:true}));await batch.commit();for(const n of state.nurses)await persistSchedule(n.uid,state.masterMonth);}catch(e){console.error(e);showToast("حُفظت البيانات محليًا، تعذر رفع بعضها إلى Firebase");}}
- renderNurses();fillIndividualSelect();renderMaster();showToast("تم تجهيز بيانات التجربة");
-}
 async function submitRoster(){const n=currentNurse();await persistSchedule(n.uid,state.month).catch(console.error);$("submitStatus").textContent="تم إرسال الروستر لرئيسة التمريض.";showToast("تم إرسال الجدول");}
 async function publishRoster(){state.published[state.masterMonth]={published:true,at:Date.now()};saveLocal();try{await persistPublished(state.masterMonth);}catch(e){console.error(e);} $("publishStatus").textContent="تم اعتماد الجدول ونشره للممرضين.";renderMaster();showToast("تم اعتماد الجدول");}
 function showMasterForNurse(){state.masterMonth=state.month;renderMaster();state.user._viewingMaster=true;document.querySelectorAll("#nurseTabs .tab").forEach(b=>b.classList.remove("active"));document.querySelectorAll(".tab-panel").forEach(p=>p.classList.add("hidden"));$("tab-roster").classList.remove("hidden");$("calendar").classList.add("hidden");$("legend").classList.add("hidden");$("submitRoster").classList.add("hidden");$("viewMasterFromNurse").classList.add("hidden");let old=$("nurseMasterWrap");if(!old){old=document.createElement("div");old.id="nurseMasterWrap";old.className="master-wrap mt-4";$("tab-roster").querySelector(".panel").appendChild(old);}old.classList.remove("hidden");const previous=$("masterRoster");old.innerHTML=previous?.innerHTML||"";old.querySelectorAll("[data-period]").forEach(c=>c.onclick=null);if(!old.innerHTML)old.innerHTML="<p class='p-4'>لا يوجد جدول منشور.</p>";}
@@ -156,6 +161,6 @@ function setupEvents(){
  $("nurseTabs").querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("#nurseTabs .tab").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".tab-panel").forEach(p=>p.classList.toggle("hidden",p.id!==`tab-${b.dataset.tab}`));});
  $("adminTabs").querySelectorAll("[data-admin-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("#adminTabs .tab").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".admin-panel").forEach(p=>p.classList.toggle("hidden",p.id!==`admin-${b.dataset.adminTab}`));if(b.dataset.adminTab==="master")renderMaster();});
  $("prevMonth").onclick=()=>changeMonth(-1);$("nextMonth").onclick=()=>changeMonth(1);$("masterPrev").onclick=()=>changeMonth(-1,"admin");$("masterNext").onclick=()=>changeMonth(1,"admin");
- $("submitRoster").onclick=submitRoster;$("viewMasterFromNurse").onclick=showMasterForNurse;$("addNurseBtn").onclick=()=>openNurseForm();$("nurseForm").onsubmit=handleNurseSave;$("seedBtn").onclick=seedData;$("publishBtn").onclick=publishRoster;$("adminExport").onclick=()=>window.print();$("printMaster").onclick=()=>window.print();$("individualNurse").onchange=renderIndividual;$("cellAdd").onclick=()=>alterCell(false);$("cellRemove").onclick=()=>alterCell(true);
+ $("submitRoster").onclick=submitRoster;$("viewMasterFromNurse").onclick=showMasterForNurse;$("addNurseBtn").onclick=()=>openNurseForm();$("nurseForm").onsubmit=handleNurseSave;$("publishBtn").onclick=publishRoster;$("printMaster").onclick=()=>window.print();$("individualNurse").onchange=renderIndividual;$("cellAdd").onclick=()=>alterCell(false);$("cellRemove").onclick=()=>alterCell(true);
 }
 loadLocal();setupEvents();renderLegend();loadCloud().then(()=>{if(state.user?.role==="Admin")showApp();});
